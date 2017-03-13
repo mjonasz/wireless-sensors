@@ -1,0 +1,22 @@
+stx882: http://www.nicerf.com/product_132_43.html
+kodowanie: http://electronics.stackexchange.com/questions/173170/using-433-mhz-tx-rx-without-encoders-decoders
+lib do 443mhz:
+https://github.com/Yveaux/RadioHead/tree/master/RadioHead
+
+vfm step up conver - nie trza
+
+sensory: najlepszy bme280
+http://www.kandrsmith.org/RJS/Misc/Hygrometers/calib_many.html
+
+msp430 jak: http://www.argenox.com/library/msp430/msp430-preface-intro/
+ide i sdk: http://processors.wiki.ti.com/index.php/Download_CCS#Code_Composer_Studio_Version_7_Downloads
+
+esp jak programować: https://www.hackster.io/glowascii/esp8266-programming-jig-5afd03
+
+msp430 jak programowac tutoriale: http://processors.wiki.ti.com/index.php/MSP430_LaunchPad_Tutorials
+
+rtl 443 do odbierania danych na kompie:
+http://goughlui.com/2013/12/20/rtl-sdr-433-92mhz-askook-decoding-of-various-devices-with-rtl_433/
+https://github.com/merbanan/rtl_433
+
+usb filtering: http://andybrown.me.uk/2015/07/24/usb-filtering/
