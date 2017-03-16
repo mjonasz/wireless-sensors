@@ -1,14 +1,12 @@
 # Wireless sensors
 
-## Reading BMP280/BME280
+## Reading BME280 (temperature, humidity, pressure)
 
-Reading will be done using i2c protocol. Sensing interval should be about 1/min.
+Reading will be done using spi protocol. Sensing interval should be about 1/min.
 
 * BST-BME280_DS001-10.pdf
-* BST-BMP280-DS001-11.pdf
-* msp430_i2c.pdf
 
-## Communication
+## Wireless communication
 
 Communication will be done using 433MHz raw transmitter with Manchester encoding at MCU level. 
 
@@ -20,6 +18,7 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 ## Thoughts
 
 * When tested with rtl_433 I discovered that there are couple near meteo stations in my area, so we need to be aware that our 433mhz transmitter is not the only one in neightborhood and we have to deal with some interferences (simplest solution is to send our data couple times in some random intervals).
+* Tested receiving using MX-05V powered from laptop USB. It needs strong filtering. It works very stable with average voltage 5.14v and 0.04v amplitude (laptop usb). Filtering was created from capacitors and ferride bead. This kind of filtering wasn't enough to get good results from standard usb charger. MX-05V is only for temporary use, later that will be SRX882.
 
 ## Done
 
@@ -27,11 +26,11 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 
 ## TODO
 
-* Reading BME280/BMP280 sensor (i2c)
+* Reading BME280 sensor (spi)
 * Develop transmission format
 * Implement sending sensor data (every reading should be sent couple times in random intervals)
 * Implement receiving and parsing of sensor readings (in rtl_433)
 * Implement sleep modes for intervals between reading/sending sensor data
-* Implement reading device ID with some physical jumpers or whatever (then use ID as seed to PRNG)
-* Implement receiving of sensor readings with some IC (probably esp01) and 433mhz receiver (needs stable 5v voltage)
+* Implement reading device ID with some physical jumpers or whatever (then use ID as seed to PRNG for generating intervals between transmitted data)
+* Implement receiving of sensor readings with some IC (probably esp01) and 433mhz receiver (SRX882 should work good at 3.3v)
 * Some simple HMAC mechanism to prevent tempering with reading? At once it will check for any transmission errors.
