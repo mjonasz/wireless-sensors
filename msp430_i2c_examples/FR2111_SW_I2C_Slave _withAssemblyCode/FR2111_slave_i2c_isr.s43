@@ -1,0 +1,370 @@
+; --COPYRIGHT--,BSD
+; Copyright (c) 2016, Texas Instruments Incorporated
+; All rights reserved.
+;
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions
+; are met:
+;
+; *  Redistributions of source code must retain the above copyright
+;    notice, this list of conditions and the following disclaimer.
+;
+; *  Redistributions in binary form must reproduce the above copyright
+;    notice, this list of conditions and the following disclaimer in the
+;    documentation and/or other materials provided with the distribution.
+;
+; *  Neither the name of Texas Instruments Incorporated nor the names of
+;    its contributors may be used to endorse or promote products derived
+;    from this software without specific prior written permission.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+; THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+; PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+; CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+; PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+; EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+; --/COPYRIGHT--
+;*****************************************************************************
+#include <msp430.h>
+
+;-------------------------------------------------------------------------------
+; Exported Symbols
+;-------------------------------------------------------------------------------
+            PUBLIC  INIT_I2C
+            PUBLIC  I2C_STP2
+            PUBLIC  RAM
+            PUBLIC  SCL
+            PUBLIC  SDA
+
+
+;-------------------------------------------------------------------------------
+; Define Constant
+;-------------------------------------------------------------------------------
+SCL         EQU     01H                     ; P1.0 is used for SCL
+SDA         EQU     01H                     ; P2.0 is used for SDA
+I2COA       EQU     0AH                     ; I2C own Address
+
+
+
+;-------------------------------------------------------------------------------
+; Define RAM
+;-------------------------------------------------------------------------------
+            RSEG    DATA16_N
+;-------------------------------------------------------------------------------
+RAM         DS      16
+I2CDATA     DS      1
+
+
+;-------------------------------------------------------------------------------
+            RSEG    DATA16_N
+;-------------------------------------------------------------------------------
+            EVEN
+BR_ADD      DW      1
+BR_CLK_8    DW      1
+
+
+;-------------------------------------------------------------------------------
+; Implementation
+;-------------------------------------------------------------------------------
+            RSEG    CODE
+;-------------------------------------------------------------------------------
+INIT_I2C    call    #MAIN_ASM
+            ret
+
+MAIN_ASM
+            mov.b   #10H,R5
+CLEAR_RAM   dec     R5
+            mov.b   #01h,RAM(R5)
+            jnz     CLEAR_RAM
+
+            call    #INIT_PORT              ; Init I/O port
+            call    #INIT_REG               ; Init Register
+            ret
+
+
+;-------------------------------------------------------------------------------
+INIT_REG    ; R4 - Branch pointer
+            ; R5 - Ram index
+            ; I2CDATA - Store a Byte for I2C transmission
+;-------------------------------------------------------------------------------
+            mov.b   #00H,I2CDATA
+            mov     #SCL_WRT,R4
+            mov     #0000H,R5
+            ret
+
+
+;-------------------------------------------------------------------------------
+INIT_PORT   ; Set SCL and SDA to inputs
+            ; SDA interrupts on high-to-low transition
+            ; SCL interrupts on low-to-high transition
+            ; initially, just SDA interrupt is set
+;-------------------------------------------------------------------------------
+            bic.b   #SDA,&P2OUT             ; When the pins are set to
+            bic.b   #SCL,&P1OUT             ; output, low level should be seen
+            bic.b   #SCL,&P1DIR             ; SCL and SDA defined as inputs
+INIT_INT    bic.b   #SDA,&P2DIR
+            bis.b   #SDA,&P2IES             ; INT. on high-to-low transition
+            bic.b   #SCL,&P1IES             ; INT. on low-to-high transition
+            bic.b   #SCL,&P1IE              ; Disable SCL interrupt
+            bis.b   #SDA,&P2IE              ; Enable SDA interrupt
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+            bic.b   #SDA,&P2IFG
+            ret
+
+
+;-------------------------------------------------------------------------------
+ISR_SDA     ; Port 2 ISR, check Start or Stop condition from P2.0 and P1.0
+            ; Or it can check I/O interrupt from P2.1 to P2.7
+;-------------------------------------------------------------------------------
+            bit.b   #SCL,&P1IN              ; Test SCL High
+            jnc     NOT_SDA
+            bit.b   #SDA,&P2IFG             ; Test SDA interrupt
+
+NOT_SDA     mov.b   #00H,&P2IFG             ; CLR P2IFG
+            jc      I2C_SP                  ; Jump to I2C start/stop routine
+            ;
+            ;                               ; These few lines are left blank.
+            ;                               ; User can add Instructions here
+            ;                               ; for I/O INT. from P2.1 to P2.7
+            ;                               ; used for Key Matrix Scanning
+            ;
+            reti
+
+
+;-------------------------------------------------------------------------------
+I2C_SP      ; I2C Start/Stop sorter
+;-------------------------------------------------------------------------------
+            bit.b   #SDA,&P2IES             ; Test START / STOP Condition
+            jc      I2C_START
+
+
+;-------------------------------------------------------------------------------
+I2C_STP2    ; Handles stop condition caused by SDA interrupt or error
+;-------------------------------------------------------------------------------
+            mov     #SCL_WRT,R4             ; Init the SCL routine addr pointer
+            call    #INIT_PORT              ; Init port setting for SCL and SDA
+            reti
+
+
+;-------------------------------------------------------------------------------
+I2C_START   ; Handles a start condition caused by SDA interrupt
+;-------------------------------------------------------------------------------
+            bic.b   #SCL,&P1IFG             ; P1.0 clear INT flag
+            bis.b   #SCL,&P1IE              ; P1.0 INT enable for SCL
+            bic.b   #SDA,&P2IES             ; P2.0 set to rising edge for SDA
+            bic.b   #SDA,&P2IFG             ; P2.0 clear INT flag
+            bic.b   #SDA,&P2IE              ; P2.0 INT disable for SDA
+            mov.b   #00H,I2CDATA            ; Reset I2CDATA for addr detect
+            mov     #NACK_T,BR_ADD          ; Pre-set ACK branching to NACK_T
+            mov     #SCL_WRT,R4             ; Pre-set SCL branching pointer
+            mov     #0000H,R5               ; Reset RAM index pointer
+            reti
+
+
+;-------------------------------------------------------------------------------
+ISR_SCL     ; ISR for SCL interrupts
+;-------------------------------------------------------------------------------
+            br      @R4+
+SCL_WRT                                     ; Addres detect and Write in ISRs
+            DW      SCL_W1LH                ; Bit 1 (first clk rising edge)
+            DW      SCL_W1HL                ; Bit 1 (first clk falling edge)
+            DW      SCL_W2to6LH             ; Bit 2 (2nd  clk rising edge)
+            DW      SCL_W2to6LH             ; Bit 3 (3rd  clk rising edge)
+            DW      SCL_W2to6LH             ; Bit 4 (4th  clk rising edge)
+            DW      SCL_W2to6LH             ; Bit 5 (5th  clk rising edge)
+            DW      SCL_W2to6LH             ; Bit 6 (6th  clk rising edge)
+            DW      SCL_W7LH                ; Bit 7 (7th  clk rising edge)
+            DW      SCL_W8LH                ; Bit 8 (8th  clk rising edge)
+            DW      SCL_W8HL                ; Set ACK (8th  clk falling edge)
+            DW      SCL_W9HL                ; Re-init R4 (9th  clk falling edge)
+
+
+SCL_READ                                    ; Read out ISRs
+            DW      SCL_R1HL                ; Bit 1 (first clk falling edge)
+            DW      SCL_R1LH                ; Bit 1 (first clk rising edge)
+            DW      SCL_R2to8HL             ; Bit 2 (2nd clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 3 (3rd clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 4 (4th clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 5 (5th clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 6 (6th clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 7 (7th clk falling edge)
+            DW      SCL_R2to8HL             ; Bit 8 (8th clk falling edge)
+            DW      SCL_R9HL                ; Free SDA (9th clk falling edge)
+            DW      SCL_R9LH                ; Check ACK (9th clk rising edge)
+                                            ; Re-init R4
+
+
+
+;-------------------------------------------------------------------------------
+SCL_W1LH    ;This ISR handles the 1st bit clocked in on the rising edge of SCL
+;-------------------------------------------------------------------------------
+            bis.b   #SCL,&P1IES             ; Set falling edge for SCL
+            bit.b   #SDA,&P2IN              ; Check SDA and store in Carry Reg.
+            bic.b   #SCL,&P1IFG             ; Reset SCL interrupt flag
+            bic.b   #SDA,&P2IFG             ; Clear flag, FOR STP_CON DETECT
+            bis.b   #SDA,&P2IE              ; Enable SDA INT
+            rlc.b   I2CDATA                 ; Shift SDA bit into the buffer
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_W1HL    ;This ISR is called on the falling edge of the first SCL clock
+;-------------------------------------------------------------------------------
+            bic.b   #SCL,&P1IES             ; Set rising edge for SCL
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+            bic.b   #SDA,&P2IE              ; 1st FALLING SCL TO disable SDA INT
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_W2to6LH ;This ISR handles the 2nd through 6th bits on rising SCL edge
+;-------------------------------------------------------------------------------
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+            bit.b   #SDA,&P2IN              ; Check SDA and store in Carry Reg.
+            rlc.b   I2CDATA                 ; Shift SDA bit into the buffer
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_W7LH    ;This ISR is called on the rising edge of the 7th SCL clock
+;-------------------------------------------------------------------------------
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+            bit.b   #SDA,&P2IN              ; Check SDA and store in Carry Reg.
+            rlc.b   I2CDATA                 ; Shift SDA bit into the buffer
+
+            cmp     #W_ACK,BR_ADD           ; Check if BR_ADD is modified
+            jz      WRT_7                   ; If Yes, Jump to write-in branch
+
+            cmp.b   #I2COA,I2CDATA          ; If not, check if it is own addr
+            jnz     NACK_T                  ; If not, Jump to NACK_T
+            mov     #RW_BIT,BR_CLK_8        ; Set branch to check R/W bit
+            reti
+
+WRT_7       mov     #WRITE_IN,BR_CLK_8      ; Set BR_CLK_8 to write-in branch
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_W8LH    ;This ISR handles the 8th bit and sets up for ACK on falling SCL
+;-------------------------------------------------------------------------------
+            bis.b   #SCL,&P1IES             ; Set falling edge for SCL.
+            bit.b   #SDA,&P2IN              ; Check SDA and store in Carry Reg.
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+
+            br      BR_CLK_8                ; R/W bit or write-in Branching
+
+RW_BIT      jc      READ_CMD
+WRITE_CMD   mov     #W_ACK,BR_ADD           ; Set BR_ADD to write-ACK branch
+            reti
+READ_CMD    mov     #R_ACK,BR_ADD           ; Set BR_ADD to Read-Ack branch
+            reti
+
+WRITE_IN    rlc.b   I2CDATA                 ; Shift SDA bit into the buffer
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_W8HL    ;This ISR output ACK and setting for write or read process
+            ;on falling edge of 8th bit
+;-------------------------------------------------------------------------------
+            bis.b   #SDA,&P2DIR             ; Output "0" for SDA
+            bic.b   #SCL,&P1IFG             ; Reset SCL interrupt flag
+
+            br      BR_ADD
+
+W_ACK       mov.b   I2CDATA,RAM(R5)         ; Store the received data into RAM
+            inc.b   R5                      ; RAM pointer increase 1
+            and.b   #0FH,R5                 ; Limit the RAM buffer size to 16
+            reti
+
+R_ACK       mov.b   I2CDATA,RAM             ; Store the Addr into RAM
+            inc.b   R5                      ; RAM pointer increase 1
+            mov.b   RAM(R5),I2CDATA         ; Move out one byte from RAM buffer
+            mov     #SCL_READ,R4            ; Set to Read-out ISRs
+            reti
+
+NACK_T      jmp      I2C_STP2               ; JMP TO STOP COND. SETING
+
+
+;-------------------------------------------------------------------------------
+SCL_W9HL    ;This ISR release SDA and reset the routine address pointer
+            ;on falling edge of 9th clock
+;-------------------------------------------------------------------------------
+            bic.b   #SDA,&P2DIR             ; Release SDA
+            bic.b   #SCL,&P1IES             ; Set rising edge for SCL
+            bic.b   #SCL,&P1IFG             ; Reset interrupt flag
+            mov     #SCL_WRT,R4             ; Re-init the Write-in ISRs pointer
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_R1LH    ;This ISR detect the stop_con in read-out routine
+;-------------------------------------------------------------------------------
+            bis.b   #SCL,&P1IES             ; Set falling edge for SCL
+            bic.b   #SCL,&P1IFG             ; Clear SCL INT flag
+            bic.b   #SDA,&P2IFG             ; Clear SDA INT Flag
+            bis.b   #SDA,&P2IE              ; Enable SDA INT for STOP CON
+            reti
+
+
+;-------------------------------------------------------------------------------
+;These ISRs output a "1" or "0" bit by bit on every falling edge
+;-------------------------------------------------------------------------------
+SCL_R1HL    bic.b   #SCL,&P1IES             ; Set rising edge SCL for SCL_R1LH
+SCL_R2to8HL rlc.b   I2CDATA                 ; Shift out one bit
+            jc      SET_1                   ; Check 1 or 0
+SET_0       bis.b   #SDA,&P2DIR             ; SDA = 0
+            jmp     SET_OK
+SET_1       bic.b   #SDA,&P2DIR             ; SDA = 1
+SET_OK      bic.b   #SCL,&P1IFG             ; Clear SCL INT flag
+            bic.b   #SDA,&P2IE              ; Disable SDA INT, NO STP CON
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_R9HL    ;This ISR release SDA for receiving ACK from master unit
+;-------------------------------------------------------------------------------
+            bic.b   #SDA,&P2DIR             ; Release SDA
+            bic.b   #SCL,&P1IES             ; Set Rising edge of SCL
+            bic.b   #SCL,&P1IFG             ; Clear SCL INT flag
+            reti
+
+
+;-------------------------------------------------------------------------------
+SCL_R9LH    ;This ISR receive ACK or NACK
+;-------------------------------------------------------------------------------
+            bit.b   #SDA,&P2IN              ; Check SDA and store in Carry Reg.
+            jnc     ACK_READ                ; If "0", Jump to ACK_READ
+
+NACK_READ   bic.b   #SCL,&P1IES             ; Set rising edge of SCL
+            bic.b   #SCL,&P1IFG             ; Clear SCL INT flag
+            mov     #SCL_WRT,R4             ; Set ISR pointer to write-in ISRs
+            mov     #NACK_T,BR_ADD          ; Pre-set ACK branching to NACK_T
+            reti
+
+ACK_READ    bis.b   #SCL,&P1IES             ; Set falling edge of SCL
+            bic.b   #SCL,&P1IFG             ; Clear SCL INT flag
+            mov     #SCL_READ,R4            ; Set ISR pointer to read-out ISRs
+            inc.b   R5                      ; RAM pointer increase 1
+            and.b   #0FH,R5                 ; Limit the RAM buffer size to 16
+            mov.b   RAM(R5),I2CDATA         ; Move out next byte from RAM buffer
+            reti
+
+
+;-------------------------------------------------------------------------------
+; Interrupt Vector
+;-------------------------------------------------------------------------------
+            COMMON  INTVEC
+;-------------------------------------------------------------------------------
+            ORG     PORT1_VECTOR
+            DW      ISR_SCL
+
+            ORG     PORT2_VECTOR
+            DW      ISR_SDA
+
+END
