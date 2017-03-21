@@ -26,3 +26,12 @@ http://embedded.fm/blog/ese101
 
 msp430 external programming:
 http://www.kerrywong.com/2012/04/02/using-msp430-launchpad-as-programmer/
+
+msp430 documentation http://www.rowleydownload.co.uk/msp430/documentation/index.htm?http://www.rowleydownload.co.uk/msp430/documentation/__bic_SR_register_on_exit.htm
+
+identyfikacja sygnałów: http://www.sigidwiki.com/wiki/Signal_Identification_Guide
+
+ekonomiczna wersja stacji (tylko temperatura):
+* MSP430G2231 http://www.ti.com/product/msp430g2231?keyMatch=MSP430G2231&tisearch=Search-EN-Everything 0.57$ - najtańszy ze sprzętowym i2c, kosztuje praktycznie tyle samo co dużo słabszy msp430g2001 (bez i2c, mniej romu)
+* FS1000A nadajnik najtanszy 433mhz ~0.5$ razem z odbiornikiem (zbędny, ale inaczej nie było) https://www.aliexpress.com/item/RF-wireless-receiver-module-transmitter-module-board-for-arduino-super-regeneration-315-433MHZ-DC5V-ASK-OOK/1446556872.html
+* TMP112 termometr (i2c) na niskie napiecie z dokladnoscia 0.5c 0.55$ http://www.ti.com/product/TMP112/description
