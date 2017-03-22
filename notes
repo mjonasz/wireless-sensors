@@ -35,3 +35,6 @@ ekonomiczna wersja stacji (tylko temperatura):
 * MSP430G2231 http://www.ti.com/product/msp430g2231?keyMatch=MSP430G2231&tisearch=Search-EN-Everything 0.57$ - najtańszy ze sprzętowym i2c, kosztuje praktycznie tyle samo co dużo słabszy msp430g2001 (bez i2c, mniej romu)
 * FS1000A nadajnik najtanszy 433mhz ~0.5$ razem z odbiornikiem (zbędny, ale inaczej nie było) https://www.aliexpress.com/item/RF-wireless-receiver-module-transmitter-module-board-for-arduino-super-regeneration-315-433MHZ-DC5V-ASK-OOK/1446556872.html
 * TMP112 termometr (i2c) na niskie napiecie z dokladnoscia 0.5c 0.55$ http://www.ti.com/product/TMP112/description
+
+dobre tutoriale o timerach: http://www.simplyembedded.org/tutorials/timers/
+czytanie SPI na msp430 usi: http://mspsci.blogspot.com/2012/09/tutorial-19c-25xx080.html
