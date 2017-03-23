@@ -19,7 +19,7 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 
 * When tested with rtl_433 I discovered that there are couple near meteo stations in my area, so we need to be aware that our 433mhz transmitter is not the only one in neightborhood and we have to deal with some interferences (simplest solution is to send our data couple times in some random intervals).
 * Tested receiving using MX-05V powered from laptop USB. It needs strong filtering. It works very stable with average voltage 5.14v and 0.04v amplitude (laptop usb). Filtering was created from capacitors and ferride bead. This kind of filtering wasn't enough to get good results from standard usb charger. MX-05V is only for temporary use, later that will be SRX882.
-
+* STX882 (~1500bps) trasmitter is slower at 3.5v than FS1000A (~2000bps), so FS1000A looks like better, simpler and cheaper solution
 ## Done
 
 * Sending test message with Manchester encoding (works very reliable when receiving with rtl_433)
