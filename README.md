@@ -24,6 +24,22 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 
 * Sending test message with Manchester encoding (works very reliable when receiving with rtl_433)
 
+## Variations
+
+### Premium 
+
+* mcu: MSP430G2452 (1.5$)
+* sensor temperature, humidity, pressure: BME280 (3.2$)
+* transmitter: FS1000A (0.5$)
+* battery: CR2032 (0.2$)
+
+### Cheap 
+
+* mcu: MSP430G2231 (0.57$), i2c, spi, 2KB rom, 128B ram
+* sensor temperature only: TMP112 (0.55$), 0.5°C precision
+* transmitter: FS1000A (0.5$)
+* battery: CR2032 (0.2$)
+
 ## TODO
 
 * Reading BME280 sensor (spi)
