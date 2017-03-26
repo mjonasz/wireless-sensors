@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
 # coding: utf-8
 
 import time
 import binascii
 import re
+import sys
 
 digT = []
 digP = []
@@ -44,10 +46,9 @@ def get_calib_param(calib):
             digH[i] = (-digH[i] ^ 0xFFFF) + 1
 
 
-def read_hex_line():
-    data_hex = input()
+def parse_hex_line(line):
+    data_hex = line
     data_hex = re.sub('0[xX]', '', data_hex)
-    print(data_hex)
     data_hex = data_hex.split()
     data = []
     for hexByte in data_hex:
@@ -57,7 +58,7 @@ def read_hex_line():
 
 
 def read_data():
-    data = read_hex_line()
+    data = parse_hex_line(input())
     assert len(data) == 8
     pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
     temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
@@ -69,9 +70,11 @@ def read_data():
     return dict(temperature=temperature,pressure=pressure,humidity=humidity)
 
 
-def read_calib():
-    # need to ignore 0xA0 register byte
-    calib = read_hex_line()
+def read_calib(filename):
+    # remember to ignore 0xA0 register byte
+    f = open(filename, 'r')
+    line = f.read()
+    calib = parse_hex_line(line)
     assert len(calib) == 32
     get_calib_param(calib)
 
@@ -131,7 +134,10 @@ def compensate_H(adc_H):
 
 if __name__ == '__main__':
     try:
-        read_calib()
-        print(read_data())
+        calib_filename = sys.argv[1]
+        read_calib(calib_filename)
+        while True:
+          print(read_data())
+
     except KeyboardInterrupt:
         pass
