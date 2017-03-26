@@ -1,0 +1,1 @@
+cat 1.calib read | python ./calculate.py
