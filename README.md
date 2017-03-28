@@ -15,11 +15,12 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 * Preamble after encoding: 0b10101010 0b10011001 (may be optimized)
 * Effective speed ~2000bps
 
-## Thoughts
+## Experiments
 
 * When tested with rtl_433 I discovered that there are couple near meteo stations in my area, so we need to be aware that our 433mhz transmitter is not the only one in neightborhood and we have to deal with some interferences (simplest solution is to send our data couple times in some random intervals).
 * Tested receiving using MX-05V powered from laptop USB. It needs strong filtering. It works very stable with average voltage 5.14v and 0.04v amplitude (laptop usb). Filtering was created from capacitors and ferride bead. This kind of filtering wasn't enough to get good results from standard usb charger. MX-05V is only for temporary use, later that will be SRX882.
 * STX882 (~1500bps) trasmitter is slower at 3.5v than FS1000A (~2000bps), so FS1000A looks like better, simpler and cheaper solution
+* Tests with rtl_433 and Manchester encoding show that even without checksum there are no wrong data received. If similar receiving implementation will be created for esp01, then CRC8 will be enough to make sure that no wrong data will be ever received. We can drop whole packet if there is any inconformity with Manchaster encoding (rtl_433 works that way).
 
 ## Done
 
