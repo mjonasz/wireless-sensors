@@ -48,9 +48,10 @@ Communication will be done using 433MHz raw transmitter with Manchester encoding
 ## TODO
 
 * Develop transmission format
-* Implement sending sensor data (every reading should be sent couple times in random intervals)
-* Implement receiving and parsing of sensor readings (in rtl_433)
+* Implement sending sensor data (every reading should be sent couple times in random intervals) - test version done
+* Implement receiving and parsing of sensor readings (in rtl_433) - test version done
 * Implement sleep modes for intervals between reading/sending sensor data
 * Implement reading device ID with some physical jumpers or whatever (then use ID as seed to PRNG for generating intervals between transmitted data)
 * Implement receiving of sensor readings with some IC (probably esp01) and 433mhz receiver (SRX882 should work good at 3.3v)
 * Some simple HMAC mechanism to prevent tempering with reading? At once it will check for any transmission errors.
+* Graphs with InfluxDB and Grafana 
